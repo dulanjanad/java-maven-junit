@@ -43,7 +43,7 @@ We also assume that the Nexus is available and reachable from the internet, and 
 
 First, you need an application to work with: in this specific case we'll use a
 simple one, but it could be any Maven application. This will be the dependency
-you want to package and deploy to Artifactory, to be available to other
+you want to package and deploy to Nexus, to be available to other
 projects.
 
 ### Prepare the dependency application
@@ -56,7 +56,7 @@ project:
 1. Add the following URL:
 
    ```plaintext
-   https://gitlab.bio.di.uminho.pt/tutorials/java-maven-junit-ci-helloworld
+   https://gitlab.bio.di.uminho.pt/tutorials/java-maven-junit-ci-helloworld.git
    ```
 
 1. Click **Create project**
