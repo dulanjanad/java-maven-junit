@@ -32,12 +32,12 @@ This example follows the following basic conventions:
 ## Introduction
 
 In this project, we show how you can leverage the power of [GitLab CI/CD](https://about.gitlab.com/stages-devops-lifecycle/continuous-integration/)
-to build a [Maven](https://maven.apache.org/) project, deploy it to [Nexus](https://nexus.bio.di.uminho.pt/), and then use it from another Maven application as a dependency.
+to build a [Maven](https://maven.apache.org/) project and deploy it to [Nexus](https://nexus.bio.di.uminho.pt/).
 
 You'll use this project as example to test Gitlab CI using Maven and our Nexus.
 
 We assume that you already have a GitLab account on [gitLab.bio.di.uminho.pt](http://gitlab.bio.di.uminho.pt/), and that you know the basic usage of Git and [GitLab CI/CD](https://about.gitlab.com/stages-devops-lifecycle/continuous-integration/).
-We also assume that the Nexus is available and reachable from the internet, and that you have valid credentials to deploy on it.
+We also assume that the Nexus is available and reachable from the internet, and that you have valid credentials to deploy on it. (Please ask for your Nexus credentials from our Servers/Resources Administrators) 
 
 ## Create the Project
 
@@ -68,12 +68,12 @@ The project structure is really simple, and you should consider these two resour
 - `pom.xml`: project object model (POM) configuration file
 - `src/main/java/com/example/javamavenjunithelloworld/HelloApp.java`: main of our application
 
-### Configure the Nexus deployment
+### Configure the Nexus deployment for Snaspshots
 
-The application is ready to use, but you need some additional steps to deploy it to Artifactory:
+The application is ready to use, but you need some additional steps to deploy it to Nexus:
 
 1. Log in to Nexus with your user's credentials.
-1. From the main screen, click on the `Releases` item in the **Repositories** panel.
+1. From the main screen, click on the `Snapshots` item in the **Repositories** panel.
 1. Copy to clipboard the configuration snippet under the **Summary** Tab.
 1. Change the `url` value to have it configurable by using variables.
 1. Copy the snippet in the `pom.xml` file for your project, just after the
@@ -82,8 +82,8 @@ The application is ready to use, but you need some additional steps to deploy it
    ```xml
    <distributionManagement>
      <repository>
-       <id>releases</id>
-       <url>${env.MAVEN_REPO_URL}/content/repositories/releases</url>
+       <id>snapshots</id>
+       <url>${MAVEN_REPO_URL}/content/repositories/snapshots</url>
      </repository>
    </distributionManagement>
    ```
@@ -106,9 +106,14 @@ parameter in `.gitlab-ci.yml` to use the custom location instead of the default 
        xmlns="http://maven.apache.org/SETTINGS/1.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
      <servers>
        <server>
-         <id>central</id>
-         <username>${env.MAVEN_REPO_USER}</username>
-         <password>${env.MAVEN_REPO_PASS}</password>
+         <id>releases</id>
+         <username>${MAVEN_REPO_USER}</username>
+         <password>${MAVEN_REPO_PASS}</password>
+       </server>
+       <server>
+         <id>snapshots</id>
+         <username>${MAVEN_REPO_USER}</username>
+         <password>${MAVEN_REPO_PASS}</password>
        </server>
      </servers>
    </settings>
@@ -126,17 +131,18 @@ that will be executed by the configured runners. You can read more about this fi
 First of all, remember to set up variables for your deployment. Navigate to your project's **Settings > CI/CD > Environment variables** page
 and add the following ones (replace them with your current values, of course):
 
-- **MAVEN_REPO_URL**: `https://nexus.bio.di.uminho.pt/` (our Nexus URL)
+- **MAVEN_REPO_URL**: `https://nexus.bio.di.uminho.pt` (our Nexus URL)
 - **MAVEN_REPO_USER**: `nexususer` (your Nexus username)
 - **MAVEN_REPO_PASS**: `nexuspassword` (your Nexus Password)
 
 Now it's time to define jobs in `.gitlab-ci.yml` and push it to the repository:
 
 ```yaml
-image: maven:latest
+image: maven:3.6-jdk-8-slim
 
 variables:
   MAVEN_CLI_OPTS: "-s .m2/settings.xml --batch-mode"
+  MEVEN_DEPLOY_OPTS: "-DskipTests"
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
 
 cache:
@@ -157,9 +163,10 @@ test:
 deploy:
   stage: deploy
   script:
-    - mvn $MAVEN_CLI_OPTS deploy
+    - mvn $MAVEN_CLI_OPTS deploy $MEVEN_DEPLOY_OPTS
   only:
     - master
+    - dev
 ```
 
 The runner uses the latest [Maven Docker image](https://hub.docker.com/_/maven/),
@@ -189,7 +196,39 @@ If the deployment has been successful, the deploy job log will output:
 >**Note**:
 the `mvn` command downloads a lot of files from the internet, so you'll see a lot of extra activity in the log the first time you run it.
 
-Yay! You did it! Checking in Nexus will confirm that you have a new artifact available in the `Releases` repository.
+Yay! You did it! Checking in Nexus will confirm that you have a new artifact available in the `Snapshots` repository.
+
+
+### Configure the Nexus deployment for Releases
+
+Attention, this step will replace the configurations for snapshots to releases in master branch. 
+Its advised to have a `dev` branch to deploy snapshots (just clone the master branch to the dev branch).
+
+The application is ready to deploy snapshots in the master branch, but now you need some additional steps to deploy it as release to Nexus:
+
+1. Log in to Nexus with your user's credentials.
+1. From the main screen, click on the `Releases` item in the **Repositories** panel.
+1. Copy to clipboard the configuration snippet under the **Summary** Tab.
+1. Change the `url` value to have it configurable by using variables.
+1. Copy the snippet in the `pom.xml`, replace the
+   `distributionManagement` section. The snippet should look like this:
+
+   ```xml
+   <distributionManagement>
+     <repository>
+       <id>releases</id>
+       <url>${MAVEN_REPO_URL}/content/repositories/releases</url>
+     </repository>
+   </distributionManagement>
+   ```
+1. Change `version` in the `pom.xml` without `-SNAPSHOT` and commit into master branch. 
+
+
+Yay, after these changes the CI will deploy a release version of your java application!
+Checking in Nexus will confirm that you have a new artifact available in the `Releases` repository.
+>**Note**:
+Be aware that Nexus doesn't allow replacements of the same version of a java package release without Nexus Administrator authorization!
+   
 
 ## Conclusion
 
