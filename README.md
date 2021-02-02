@@ -228,7 +228,13 @@ Yay, after these changes the CI will deploy a release version of your java appli
 Checking in Nexus will confirm that you have a new artifact available in the `Releases` repository.
 >**Note**:
 Be aware that Nexus doesn't allow replacements of the same version of a java package release without Nexus Administrator authorization!
-   
+
+## Converting JaCoCo Integration reports into Gitlab Cobertura
+This project contains JaCoCo integration reports that can be converted into Gitlab cobertura.
+To enable this integration test, you must add the missing jobs to `.gitlab-ci.yml` file described in this link:
+ ```plaintext
+https://docs.gitlab.com/ee/user/project/merge_requests/test_coverage_visualization.html   
+ ```
 
 ## Conclusion
 
